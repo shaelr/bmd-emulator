@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BMD Show Builder</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">BMD Show Builder</div>
+    <input id="projectName" class="project-name" maxlength="60" aria-label="Show name" spellcheck="false">
+    <nav class="tabs">
+      <button class="tab" data-tab="atem">ATEM Switcher</button>
+      <button class="tab" data-tab="videohub">Videohub Router</button>
+    </nav>
+    <div class="spacer"></div>
+    <button id="btnNew">New</button>
+    <button id="btnOpen">Open…</button>
+    <button id="btnSave" class="primary">Save project</button>
+  </header>
+  <main>
+    <section id="tab-atem" class="tabpanel"></section>
+    <section id="tab-videohub" class="tabpanel" hidden></section>
+  </main>
+  <div id="toasts"></div>
+  <dialog id="dialog"></dialog>
+
+  <script src="js/models.js"></script>
+  <script src="js/atem-xml.js"></script>
+  <script src="js/videohub-txt.js"></script>
+  <script src="js/atem.js"></script>
+  <script src="js/videohub.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

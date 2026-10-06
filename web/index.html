@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMD Emulator</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2026; --dim: #6a717d; --line: #e1e4e8;
+    --accent: #2f6fde; --ok: #1f9d55; --warn: #b7791f; --err: #c53030; --code: #f0f2f5;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171b; --card: #1e2126; --text: #e6e8eb; --dim: #8b929e; --line: #30353d; --accent: #5a9cff; --ok: #48bb78; --warn: #ecc94b; --err: #fc8181; --code: #121418; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 20px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .dim { color: var(--dim); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  label { display: block; color: var(--dim); font-size: 12px; margin: 10px 0 4px; }
+  select, input { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .row.sizes > div { flex: 1; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); display: inline-block; }
+  .dot.on { background: var(--ok); }
+  .status { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--code); font-size: 13px; }
+  .status b { font-weight: 600; }
+  .error { color: var(--err); margin-top: 10px; font-size: 13px; }
+  .help { margin-top: 10px; font-size: 13px; }
+  .help code, .status code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  details { margin-top: 10px; font-size: 13px; }
+  .net { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--text); }
+  .net input { width: auto; }
+  .netnote { margin: -8px 0 16px; font-size: 13px; }
+  .log { margin-top: 16px; }
+  #log { height: 260px; overflow: auto; background: var(--code); border-radius: 8px; padding: 10px; font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>BMD Emulator</h1>
+    <label class="net"><input type="checkbox" id="network"> Allow other computers on the network <span class="dim" id="addr"></span></label>
+  </header>
+  <p class="dim netnote" id="netNote"></p>
+
+  <div class="grid">
+    <section class="card">
+      <h2><span class="dot" id="atemDot"></span> ATEM switcher</h2>
+      <label for="atemModel">Model</label>
+      <select id="atemModel"></select>
+      <div id="atemNote" class="dim help"></div>
+      <div class="row">
+        <button class="primary" id="atemStart">Start</button>
+        <button id="atemStop">Stop</button>
+        <button id="atemReset" title="Erase everything programmed into this emulated switcher">Reset to factory</button>
+      </div>
+      <div id="atemErr" class="error"></div>
+      <div class="status" id="atemStatus"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot" id="vhDot"></span> Videohub router</h2>
+      <label for="vhModel">Model</label>
+      <select id="vhModel"></select>
+      <div class="row sizes">
+        <div><label for="vhIn">Inputs</label><input id="vhIn" type="number" min="1" max="288"></div>
+        <div><label for="vhOut">Outputs</label><input id="vhOut" type="number" min="1" max="288"></div>
+      </div>
+      <div class="row">
+        <button class="primary" id="vhStart">Start</button>
+        <button id="vhStop">Stop</button>
+        <button id="vhReset" title="Reset labels and routing">Reset</button>
+      </div>
+      <div id="vhErr" class="error"></div>
+      <div class="status" id="vhStatus"></div>
+      <details id="bmdServer" hidden>
+        <summary>Blackmagic Videohub Server</summary>
+        <p class="dim">Blackmagic's own Videohub Server runs in the background and holds port 9990, which the emulator needs. Pause it while you use the emulator; it starts again by itself after a restart. Both buttons ask for your Mac password.</p>
+        <div class="row"><button id="bmdStop">Pause it</button><button id="bmdStart">Resume it</button></div>
+      </details>
+    </section>
+  </div>
+
+  <section class="card log">
+    <h2>Activity</h2>
+    <div id="log"></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let models = { atem: [], videohub: [] };
+let current = null;
+
+async function api(path, data) {
+  const res = await fetch(path, data ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) } : {});
+  const json = await res.json();
+  if (!res.ok) { const e = new Error(json.error); e.code = json.code; throw e; }
+  return json;
+}
+
+function fillModels() {
+  const fam = {};
+  for (const m of models.atem) (fam[m.family] ||= []).push(m);
+  $('atemModel').innerHTML = Object.entries(fam).map(([f, list]) =>
+    `<optgroup label="${esc(f)}">${list.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</optgroup>`).join('');
+  $('vhModel').innerHTML = models.videohub.map((m) => `<option value="${m.id}">${esc(m.name)} (${m.inputs}x${m.outputs})</option>`).join('') + '<option value="custom">Custom size</option>';
+}
+
+function atemNote() {
+  const m = models.atem.find((x) => x.id === $('atemModel').value);
+  if (!m) return;
+  $('atemNote').textContent = m.source === 'captured' ? 'Using the state captured from your own switcher.' : '';
+}
+
+function vhSize() {
+  const m = models.videohub.find((x) => x.id === $('vhModel').value);
+  if (m) { $('vhIn').value = m.inputs; $('vhOut').value = m.outputs; }
+}
+
+function render(s) {
+  current = s;
+  $('addr').textContent = s.network && s.addresses.length ? `(this Mac: ${s.addresses.join(', ')})` : '';
+  $('network').checked = s.network;
+  $('netNote').textContent = s.network
+    ? 'Other computers can see the emulators and connect to them. Turn this off on a network with live equipment, so the emulators don’t appear in other operators’ software.'
+    : 'The emulators are visible to software on this Mac only.';
+  const a = s.atem;
+  $('atemDot').classList.toggle('on', !!a);
+  $('atemStop').disabled = !a;
+  $('atemReset').disabled = !a;
+  if (a) {
+    if (document.activeElement !== $('atemModel')) { $('atemModel').value = a.id; atemNote(); }
+    const ip = s.addresses[0] || 'this Mac’s IP';
+    $('atemStatus').innerHTML = `<b>Running:</b> ${esc(a.name)}<br>
+      ${a.clients.length ? `Connected: ${a.clients.map((c) => esc(c.address)).join(', ')}` : '<span class="dim">No software connected yet.</span>'}<br>
+      <span class="dim">${a.macros} macro${a.macros === 1 ? '' : 's'} stored</span>
+      <div class="help">In ATEM Software Control choose <b>${esc(a.name)} (Emulator)</b>, or connect to <code>127.0.0.1</code>${s.network ? `, or <code>${esc(ip)}</code> from another computer` : ''}.</div>
+      ${a.unhandled.length ? `<details><summary>${a.unhandled.length} kind${a.unhandled.length === 1 ? '' : 's'} of change not stored yet</summary><p class="dim">These settings were sent by the software but the emulator doesn't keep them yet, so they won't appear in a saved file: ${a.unhandled.map((u) => `<code>${esc(u.name)}</code>×${u.count}`).join(' ')}</p></details>` : ''}`;
+  } else $('atemStatus').innerHTML = '<span class="dim">Stopped.</span>';
+
+  const v = s.videohub;
+  $('vhDot').classList.toggle('on', !!v);
+  $('vhStop').disabled = !v;
+  $('vhReset').disabled = !v;
+  $('bmdServer').hidden = !s.bmdVideohubServer;
+  if (v) {
+    if (document.activeElement !== $('vhModel')) { $('vhModel').value = models.videohub.some((m) => m.id === v.id) ? v.id : 'custom'; $('vhIn').value = v.inputs; $('vhOut').value = v.outputs; }
+    $('vhStatus').innerHTML = `<b>Running:</b> ${esc(v.name)} (${v.inputs}x${v.outputs})<br>
+      ${v.clients.length ? `Connected: ${v.clients.map((c) => esc(c.address)).join(', ')}` : '<span class="dim">No software connected yet.</span>'}
+      <div class="help">Videohub Control lists it as <b>${esc(v.name.replace(/^Blackmagic /, ''))} (Emulator)</b>${s.network ? `. From another computer, add <code>${esc(s.addresses[0] || 'this Mac’s IP')}</code>` : ''}.</div>`;
+  } else $('vhStatus').innerHTML = '<span class="dim">Stopped.</span>';
+}
+
+async function refresh() { render(await api('/api/status')); }
+
+async function act(errEl, fn) {
+  $(errEl).textContent = '';
+  try { render(await fn()); } catch (e) {
+    $(errEl).textContent = e.message;
+    if (e.code === 'BMD_SERVER') $('bmdServer').open = true;
+  }
+}
+
+$('network').onchange = (e) => act('atemErr', () => api('/api/network', { enabled: e.target.checked }));
+$('atemModel').onchange = atemNote;
+$('vhModel').onchange = vhSize;
+$('atemStart').onclick = () => act('atemErr', () => api('/api/atem/start', { id: $('atemModel').value }));
+$('atemStop').onclick = () => act('atemErr', () => api('/api/atem/stop', {}));
+$('atemReset').onclick = () => confirm('Erase everything programmed into this emulated switcher (macros, labels, settings)?') && act('atemErr', () => api('/api/atem/reset', {}));
+$('vhStart').onclick = () => act('vhErr', () => api('/api/videohub/start', { id: $('vhModel').value, inputs: $('vhIn').value, outputs: $('vhOut').value }));
+$('vhStop').onclick = () => act('vhErr', () => api('/api/videohub/stop', {}));
+$('vhReset').onclick = () => confirm('Reset the emulated Videohub labels and routing?') && act('vhErr', () => api('/api/videohub/reset', {}));
+$('bmdStop').onclick = () => act('vhErr', () => api('/api/bmd-videohub-server', { action: 'stop' }));
+$('bmdStart').onclick = () => act('vhErr', () => api('/api/bmd-videohub-server', { action: 'start' }));
+
+function addLog(line) {
+  const el = $('log');
+  const stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+  el.textContent += line + '\n';
+  if (stick) el.scrollTop = el.scrollHeight;
+}
+
+(async () => {
+  models = await api('/api/models');
+  fillModels();
+  atemNote();
+  vhSize();
+  await refresh();
+  const es = new EventSource('/api/events');
+  let pending = 0;
+  es.onmessage = (e) => {
+    const evt = JSON.parse(e.data);
+    if (evt.type === 'history') { $('log').textContent = ''; evt.lines.forEach(addLog); }
+    if (evt.type === 'log') addLog(evt.line);
+    if (evt.type === 'status' && !pending) pending = setTimeout(() => { pending = 0; refresh(); }, 150);
+  };
+})();
+</script>
+</body>
+</html>

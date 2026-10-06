@@ -1,0 +1,12 @@
+# Built app and SDK test client (the app ships as a GitHub release)
+/build/
+
+# Saved emulator state and switchers captured from real hardware
+/data/
+/profiles/
+
+# Blackmagic's developer documents (their copyright; download from blackmagicdesign.com)
+*.pdf
+
+node_modules/
+.DS_Store

@@ -1,0 +1,11 @@
+{
+  "name": "bmd-emulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Emulated Blackmagic ATEM switchers and Videohub routers for programming shows in Blackmagic's own software",
+  "scripts": {
+    "start": "node emulator.mjs",
+    "list": "node emulator.mjs --list"
+  },
+  "engines": { "node": ">=18" }
+}

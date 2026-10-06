@@ -13,6 +13,11 @@ that file onto the real hardware later.
 
 Download it from the repository's **Releases** page, or build it yourself (below).
 
+**First launch:** the app isn't notarized by Apple, so macOS blocks it the first time.
+Open it once and click **Done** on the warning, then go to **System Settings → Privacy &
+Security**, scroll to *Security*, click **Open Anyway** next to "BMD Emulator was blocked",
+and confirm with your password. After that it opens normally.
+
 **build/BMD Emulator.app** is a native Mac app (Apple silicon and Intel). Its window has
 everything: pick and start an ATEM or Videohub model, see what's connected, pause
 Blackmagic's Videohub Server, allow network access, and watch the activity log. Close the
